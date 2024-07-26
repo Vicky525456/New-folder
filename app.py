@@ -115,7 +115,8 @@ class RegistrationForm(App):
             if str(entry['IDno']).strip().lower() == str(id).strip().lower():
                 print(f"Found entry: {entry}")
                 self.id_input.text = entry['IDno']
-                self.name_input.text = entry['Name']
+                self.name_input.text = entry['Name'] 
+                
                 self.age_input.text = entry['Age']
                 self.mobilenumber_input.text = entry['Mobile Number']
                 self.mail_input.text = entry['Mail ID']
