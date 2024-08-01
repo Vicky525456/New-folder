@@ -19,7 +19,7 @@ from  connector import sql_cnnection,sql_update,sql_delete
 class RegistrationForm(App):
     def build(self):
         self.title="Basic form"
-        layout = BoxLayout(orientation='vertical',padding=30,spacing=10)
+        layout = BoxLayout(orientation='vertical',padding=30,spacing=10,)
 
         head_label=Label(text="Basic Registration Form",font_size=26,bold=True,height=40)
         id_label=Label(text="IDno",font_size=18)
@@ -32,8 +32,8 @@ class RegistrationForm(App):
         self.mobilenumber_input=TextInput(multiline=False,font_size=15)
         mail_label=Label(text="Mail ID",font_size=18)
         self.mail_input=TextInput(multiline=False,font_size=15)
-        submit_button=Button(text="Register",font_size=18,on_press=self.register)
-        sql_button = Button(text="Saved Data", font_size=18)
+        submit_button=Button(text="Register",font_size=18,background_color='#00ff18',on_press=self.register)
+        sql_button = Button(text="Saved Data", font_size=18,background_color='#00ffff')
         dropdown = DropDown()
 
         show_button = Button(text='Show Stored Data ', size_hint_y=None, height=40)
@@ -42,8 +42,16 @@ class RegistrationForm(App):
 
         sql_button.bind(on_release=dropdown.open)
         dropdown.bind(on_select=lambda instance, x: setattr(sql_button, 'text', x))
-        update_button = Button(text="update Data", font_size=18, on_press=self.update_entry)
-        delete_button = Button(text="Delete Data", font_size=18, on_press=self.delete)
+        update_button = Button(text="update Data", font_size=18,background_color='#00ffb9', on_press=self.update_entry)
+        delete_button = Button(text="Delete Data", font_size=18,background_color='#ff0000')
+        dropdown = DropDown()
+        
+        del_button = Button(text='Show Stored Data ', size_hint_y=None, height=40)
+        del_button.bind(on_release=lambda btn: self.del_button())
+        dropdown.add_widget(del_button)
+        delete_button.bind(on_release=dropdown.open)
+        dropdown.bind(on_select=lambda instance, x: setattr(sql_button, 'text', x))
+
 
 
         layout.add_widget(head_label)
@@ -96,7 +104,7 @@ class RegistrationForm(App):
         popup.open()
 
     def button_act(self, id):
-        print(f"Searching for ID: {id}")
+        # print(f"Searching for ID: {id}")
         filename = r"C:\New folder\data.txt"
     
         if os.path.exists(filename):
@@ -116,7 +124,7 @@ class RegistrationForm(App):
                 print(f"Found entry: {entry}")
                 self.id_input.text = entry['IDno']
                 self.name_input.text = entry['Name'] 
-                
+
                 self.age_input.text = entry['Age']
                 self.mobilenumber_input.text = entry['Mobile Number']
                 self.mail_input.text = entry['Mail ID']
@@ -133,6 +141,86 @@ class RegistrationForm(App):
             message = f"No entry found for ID: {id}"
             popup = Popup(title="Error", content=Label(text=message), size_hint=(None, None), size=(400, 200))
             popup.open()
+
+    def del_button(self):
+        mydb=sql.connect(
+            host="localhost",
+            port=3306,
+            user="root",
+            password="",
+            database="mydatabase"
+        )
+        cursor=mydb.cursor()
+        cursor.execute("SELECT id,name FROM user ORDER BY s_number")
+        results=cursor.fetchall()
+        cursor.close()
+        mydb.close()
+        popup_content = GridLayout(cols=1, spacing=1, size_hint_y=None)
+        popup_content.bind(minimum_height=popup_content.setter('height'))
+        for row in results:
+            button_text = f"ID: {row[0]} - Name: {row[1]}"
+            button = Button(text=button_text, size_hint_y=None, height=40)
+            button.bind(on_press=lambda btn, id=row[0]: self.del_act(id))
+            popup_content.add_widget(button)
+        scroll_view = ScrollView(size_hint=(None, None), size=(300,180))
+        scroll_view.add_widget(popup_content)
+        popup = Popup(title="Stored Data", content=scroll_view, size_hint=(None, None), size=(400, 250))
+        popup.open()
+
+    def del_act(self, item_id):
+        if not isinstance(item_id, tuple):
+            item_id = (item_id,)
+        try:
+            mydb = sql.connect(
+                host="localhost",
+                port=3306,
+                user="root",
+                password="",
+                database="mydatabase"
+            )
+            cursor = mydb.cursor()
+            sql_query = "DELETE FROM user WHERE id = %s"
+            cursor.execute(sql_query, item_id)
+            mydb.commit()
+            message = f"Entry for ID {item_id[0]} deleted successfully!"
+        except sql.Error as e:
+            message = f"Database error: {e}"
+        finally:
+            cursor.close()
+            mydb.close()
+        filename = r"C:\New folder\data.txt"
+        
+        if os.path.exists(filename):
+            try:
+                with open(filename, 'r') as file:
+                    try:
+                        all_data = json.load(file)
+                    except json.JSONDecodeError:
+                        all_data = []
+            except IOError as e:
+                popup = Popup(title="Error", content=Label(text=f"File read error: {e}"), size_hint=(None, None), size=(400, 200))
+                popup.open()
+                return
+        else:
+            all_data = []
+        updated_data = [entry for entry in all_data if entry['IDno'] != str(item_id[0])]
+
+        if len(updated_data) < len(all_data):
+            try:
+                with open(filename, 'w') as file:
+                    json.dump(updated_data, file, indent=5)
+            except IOError as e:
+                popup = Popup(title="Error", content=Label(text=f"File write error: {e}"), size_hint=(None, None), size=(400, 200))
+                popup.open()
+                return
+        else:
+            message = f"No entry found for ID {item_id[0]}."
+        popup = Popup(title="Delete Status", content=Label(text=message), size_hint=(None, None), size=(400, 200))
+        popup.open()
+
+        
+
+        
 
         
         
